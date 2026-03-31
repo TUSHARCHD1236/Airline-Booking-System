@@ -12,6 +12,7 @@ $flights = [];
 $airlines = [];
 $origins = [];
 $destinations = [];
+$airlineBasePrices = [];
 
 if ($flightResult) {
     while ($row = mysqli_fetch_assoc($flightResult)) {
@@ -21,6 +22,9 @@ if ($flightResult) {
         $airlines[$row['airline_name']] = true;
         $origins[$row['origin_city']] = true;
         $destinations[$row['destination_city']] = true;
+        if (!isset($airlineBasePrices[$row['airline_name']])) {
+            $airlineBasePrices[$row['airline_name']] = $row['base_price'];
+        }
     }
     mysqli_free_result($flightResult);
 }
@@ -97,7 +101,6 @@ mysqli_close($conn);
                         <h2 class="text-center mb-4 fw-bold text-primary">Flight Booking Counter</h2>
 
                         <form action="Airline_Booking.php" method="POST">
-                            <input type="hidden" id="flight_id" name="flight_id" value="">
                             <div class="row">
                                 <div class="col-md-6 mb-3">
                                     <label for="Name" class="form-label">Full Name</label>
@@ -245,31 +248,31 @@ mysqli_close($conn);
         <div class="row g-4">
             <div class="col-md-4">
                 <div class="card destination-card border-0 shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1502602898657-3e91760cbb34?auto=format&fit=crop&w=500&q=60"
-                        class="card-img-top" alt="Paris">
+                    <img src="https://images.unsplash.com/photo-1548013146-72479768bada?auto=format&fit=crop&w=500&q=60"
+                        class="card-img-top" alt="Delhi">
                     <div class="card-body">
-                        <h5 class="card-title">Paris, France</h5>
-                        <p class="card-text text-muted">Flights starting from &#x20B9 33500</p>
+                        <h5 class="card-title">Delhi, India</h5>
+                        <p class="card-text text-muted">Book flights from the capital city with any available airline.</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card destination-card border-0 shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1493976040374-85c8e12f0c0e?auto=format&fit=crop&w=500&q=60"
-                        class="card-img-top" alt="Tokyo">
+                    <img src="https://images.unsplash.com/photo-1596176530529-78163a4f7af2?auto=format&fit=crop&w=500&q=60"
+                        class="card-img-top" alt="Benguluru">
                     <div class="card-body">
-                        <h5 class="card-title">Tokyo, Japan</h5>
-                        <p class="card-text text-muted">Flights starting from &#x20B9 61200</p>
+                        <h5 class="card-title">Benguluru, India</h5>
+                        <p class="card-text text-muted">Flexible airline choices for business and leisure travel.</p>
                     </div>
                 </div>
             </div>
             <div class="col-md-4">
                 <div class="card destination-card border-0 shadow-sm">
-                    <img src="https://images.unsplash.com/photo-1512453979798-5ea266f8880c?auto=format&fit=crop&w=500&q=60"
-                        class="card-img-top" alt="Dubai">
+                    <img src="https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=500&q=60"
+                        class="card-img-top" alt="Chandigarh">
                     <div class="card-body">
-                        <h5 class="card-title">Dubai, UAE</h5>
-                        <p class="card-text text-muted">Flights starting from &#x20B9 32300</p>
+                        <h5 class="card-title">Chandigarh, India</h5>
+                        <p class="card-text text-muted">Choose your route and preferred airline without restrictions.</p>
                     </div>
                 </div>
             </div>
@@ -301,11 +304,10 @@ mysqli_close($conn);
     <script>
         const bookingForm = document.querySelector('form[action="Airline_Booking.php"]');
         const isLoggedIn = <?php echo $isLoggedIn ? 'true' : 'false'; ?>;
-        const flights = <?php echo json_encode($flights); ?>;
+        const airlineBasePrices = <?php echo json_encode($airlineBasePrices); ?>;
         const airlineInput = document.querySelector('select[name="airline"]');
         const originInput = document.querySelector('select[name="arr"]');
         const destinationInput = document.querySelector('select[name="des"]');
-        const flightIdInput = document.getElementById('flight_id');
         const travelDateInput = document.getElementById('travelDate');
         const travelTimeInput = document.getElementById('travelTime');
         const seatInput = document.getElementById('seat_no');
@@ -333,19 +335,13 @@ mysqli_close($conn);
 
         function updatePrice() {
             const selectedClass = document.querySelector('input[name="tic"]:checked').value;
-            const matchedFlight = flights.find((flight) =>
-                flight.airline_name === airlineInput.value &&
-                flight.origin_city === originInput.value &&
-                flight.destination_city === destinationInput.value
-            );
             const selectedSeat = seatInput.value;
             const passengerCount = parseInt(passengerCountInput.value || '1', 10);
             const seatGroup = selectedSeat ? selectedSeat.charAt(0) : 'D';
-            const basePrice = matchedFlight ? Number(matchedFlight.base_price) : 5000;
+            const basePrice = Number(airlineBasePrices[airlineInput.value] || 5000);
             const pricePerPassenger = basePrice + (classPrices[selectedClass] || 5000) + (seatPrices[seatGroup] || 0);
             const totalPrice = pricePerPassenger * passengerCount;
 
-            flightIdInput.value = matchedFlight ? matchedFlight.id : '';
             priceInput.value = totalPrice;
             priceDisplay.value = 'INR ' + totalPrice.toLocaleString('en-IN');
         }
@@ -383,11 +379,6 @@ mysqli_close($conn);
 
             const origin = originInput.value;
             const destination = destinationInput.value;
-            const matchedFlight = flights.find((flight) =>
-                flight.airline_name === airlineInput.value &&
-                flight.origin_city === origin &&
-                flight.destination_city === destination
-            );
 
             if (origin === destination) {
 
@@ -404,18 +395,6 @@ mysqli_close($conn);
                 modalMessage.innerText = "You cannot fly to and from the same city.";
 
                 myModal.show();
-                return;
-            }
-
-            if (!matchedFlight) {
-                e.preventDefault();
-
-                Swal.fire({
-                    title: 'Flight Not Available',
-                    text: 'Please choose a valid airline and route from the available flights.',
-                    icon: 'error',
-                    confirmButtonColor: '#dc3545'
-                });
                 return;
             }
 

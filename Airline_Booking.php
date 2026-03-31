@@ -60,24 +60,20 @@ $travelDate = $_POST['travel_date'] ?? '';
 $travelTime = $_POST['travel_time'] ?? '';
 $seatNo = strtoupper(trim($_POST['seat_no'] ?? ''));
 $passengerCount = (int) ($_POST['passenger_count'] ?? 1);
-$flightId = (int) ($_POST['flight_id'] ?? 0);
 
 if (isset($_SESSION['name']) && trim($_SESSION['name']) !== '') {
     $name = $_SESSION['name'];
 }
 
 $basePrice = 0;
-$flightStmt = mysqli_prepare($conn, "SELECT airline_name, origin_city, destination_city, base_price FROM flights WHERE id = ? AND status = 'active'");
+$flightStmt = mysqli_prepare($conn, "SELECT base_price FROM flights WHERE airline_name = ? AND status = 'active' ORDER BY id ASC LIMIT 1");
 if ($flightStmt) {
-    mysqli_stmt_bind_param($flightStmt, "i", $flightId);
+    mysqli_stmt_bind_param($flightStmt, "s", $airline);
     mysqli_stmt_execute($flightStmt);
     $flightResult = mysqli_stmt_get_result($flightStmt);
     $selectedFlight = $flightResult ? mysqli_fetch_assoc($flightResult) : null;
 
     if ($selectedFlight) {
-        $airline = $selectedFlight['airline_name'];
-        $arr = $selectedFlight['origin_city'];
-        $des = $selectedFlight['destination_city'];
         $basePrice = (float) $selectedFlight['base_price'];
     }
 
@@ -101,7 +97,6 @@ if (
     $travelTime !== '' &&
     $seatNo !== '' &&
     $passengerCount > 0 &&
-    $flightId > 0 &&
     $basePrice > 0
 ) {
     $stmt = mysqli_prepare(
